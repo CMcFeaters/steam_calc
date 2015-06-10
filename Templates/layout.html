@@ -1,0 +1,12 @@
+<!--layout-->
+<!doctype html>
+<title>Call of Cthulhu Chatacter Creator</title>
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='_style.css') }}">
+
+<div class=page>
+  <center><h1>Call of Cthulhu Character Creator</h1></center>
+  {%for message in get_flashed_messages()%}
+  		<div class=flash>{{message}}</div>
+  {%endfor%}		
+  {% block body %}{% endblock %}
+</div>

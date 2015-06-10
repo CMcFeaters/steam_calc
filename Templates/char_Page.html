@@ -1,0 +1,24 @@
+{% extends "layout.html" %}	
+{% block body %}
+
+<div class=largeText>New Character</div>
+<!-- this page needs to have a button which allows you to roll a die that fills in a form box!-->
+<a href="{{url_for('welcome')}}">Home</a>
+
+<form name=testForm onAction="{{url_for('charMod')}}"  method="POST">
+<fieldset>
+<input type="submit" name="roll" value="RollAll">
+
+<br>
+
+
+	{{cForm.charName}}
+	{{cForm.charAttrs}}
+		
+
+
+
+</fieldset>
+</form>
+
+{% endblock %}
