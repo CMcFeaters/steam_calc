@@ -25,11 +25,20 @@ class Mesh():
 	this class creates a network of pipe objects and node objects
 	
 	methods:
-		assemble: this assembles the mesh from a file
-		print: prints the mesh narrative to a command line
-		out: outputs the narrative to a designated file
+		f_parse: parses the file lines into new arrays,  extracting necessary data types, results in mArray
+		obj_assemble: assembles mArray into an array of objects
+		node_assemble: assembles node from objects
+		find_obj: finds a node and determines if it exists
+		get_obj: returns an object
+		f_out: will output array to a file
+	
+	members:
+		mFile = the name of the file being parsed, assumed local directory
+		mArray = an array of raw object data, used to create objects
+		objects = an array of objects, created from mArray, used to create the nodes
+		nodes = an array of nodes used in calcluations
 	'''
-	def __init__(self,mFile):
+	def __init__(self,mFile,oFile=""):
 		'''
 			initiate the mesh, this function automatically assembles the mesh and returns any necessary errors 
 			to the usre regarding the input file
@@ -37,15 +46,17 @@ class Mesh():
 		'''
 		self.mFile=mFile
 		self.mArray=self.f_parse()
+		self.objects=self.obj_assemble()
 		self.nodes=[]
-		self.pipes=[]
-		self.m_assemble()
+		self.node_assemble()
+		self.oFile=oFile
+		
 		
 	def __repr__(self):
 		'''
 			self defined print function.  will output a narrative till more data is needed
 		'''
-		print(self.pipes)
+		print(self.objects)	
 		print(self.nodes)
 		return ("I didn't have time to put on my face, I'm a mesh!")
 	
@@ -55,42 +66,54 @@ class Mesh():
 			input: file location
 			output: mArray
 		'''
+		
+		#parses the file array and  appends an object type to mArray
 		f=open(self.mFile,'r')
 		mArray=[]
 		
 		for line in f.readlines():
-			mArray.append([item.strip() for item in line.split(" ") if item!=""] )	#remove excess whitespace and any escape characters tab, endline, etc
+			tArray=[item.strip() for item in line.split(" ") if item!=""]
+			tArray.insert(0,tArray[0][0].lower())
+			mArray.append(tArray)	#remove excess whitespace and any escape characters tab, endline, etc
+			
+		f.close()
 		return mArray
 		
-	
-	def m_assemble(self):
-		''''
-			this assembles the mesh based on the existing self.mArray
-			Input: none (self.mArray)
-			outpute: none, modifies self.nodes and self.pipes to match the current input file
+	def obj_assemble(self):
 		'''
-
-		#find and create the pipes in the mesh
-		for line in self.mArray:
-			if line[0][0].lower()=='p':
-				self.pipes.append(Pipe(line[0].lower().replace('p','',1),line[1],line[2],line[3]))
+			uses the data in mArray to create an instance of each object class and appends it to oArray which becomes self.objects
+			input: none (uses mArray)
+			output: oArray, an array of objects created here
+		'''
 		
-		#find and create the nodes in mesh
-		for pipe in self.pipes:
-			#if pipe.n1 does not exist, create it
-			#if ipipe n2 does not exist, create it
-			#if pipe n1 exists, add 1 to the node counter
-			#if pipie n2 exists, add 1 to the node counter
-			for n in [pipe.n1,pipe.n2]:
-				if self.find_obj(n):
-					self.get_obj(n).nObjs+=1
-					self.get_obj(n).conObjs.append("Pipe {}".format(pipe.name))
+		#creates and puts each object in its specific array	
+		oArray=[]
+		#add any other object types here as needed
+		for obj in self.mArray:
+			if obj[0]=='p':
+				#create pipe
+				tObj=Pipe(obj[1],obj[2],obj[3],obj[4])
+			elif obj[0]=='v':
+				#create valve
+				tObj=Valve(obj[1],obj[2],obj[3])
+			oArray.append(tObj)
+		return oArray
+			
+	def node_assemble(self):
+		'''
+			assembles a node array based on the current objects in its containers
+		'''
+		#build out each array
+		for obj in self.objects:
+		#create the nodes for the obj
+			for node in [obj.n1,obj.n2]:
+				if self.find_obj(node):
+					self.get_obj(node).nObjs+=1
+					self.get_obj(node).conObjs.append("{}".format(obj.name))
 				else:
-					self.nodes.append(Node(n,1,["Pipe {}".format(pipe.name)]))
-				
-
+					self.nodes.append(Node(node,1,["{}".format(obj.name)]))
 		
-	def find_obj(self,num):
+	def find_obj(self,num,type='n'):
 		'''
 			a funcitno that searches through all of its nodes to determine if a nod already exists
 			in: node number
@@ -108,17 +131,47 @@ class Mesh():
 		'''
 		if type=='n':
 			return [node for node in self.nodes if node.num==criteria][0]
-		elif type=='p':
-			return [pipe for pipe in self.pipes if pipe.name==criteria][0]
+		else:
+			return [obj for obj in self.objects if obj.name==criteria][0]
 
 		
-	def f_out(self,outFile):
+	def f_out(self):
 		'''
 			prints to an output file
 		'''
-		pass
+		print ("Outputing to file: {}".format(self.oFile))
+		if self.oFile!="":
+			f=open(self.oFile,'w')
+			f.truncate()
+			for object in self.objects:
+				print (str(object))
+				f.write(str(object))
+				f.write('\n')
+			
+			for node in self.nodes:
+				f.write(str(node))
+				f.write('\n')
+				
+			f.close()
 
-class Pipe():
+class Object():
+	'''
+		basic object class
+		has a name and 2 nodes
+	'''
+	
+	def __init__(self,name,n1,n2):
+		self.name=name
+		self.n1=n1
+		self.n2=n2
+		 
+	def __repr__(self):
+		return ("I'm object {}.  I exist between these nodes: {}".format(self.name,[self.n1,self.n2]))
+	
+	def __str__(self):
+		return("I'm object {}.  I exist between these nodes: {}".format(self.name,[self.n1,self.n2]))
+		 
+class Pipe(Object):
 	'''the pipe class
 	this class will have allof our pipe data
 	a pipe has a start node, an end node and  a length'''
@@ -128,23 +181,24 @@ class Pipe():
 		self.n2=n2
 		self.length=length
 		
-	def __repr__(self):
-		return ("I'm pipe %s  N1: %s  N2: %s  Length: %s"%(self.name,self.n1,self.n2,self.length))
+	#def __repr__(self):
+	#	return ("I'm pipe %s  N1: %s  N2: %s  Length: %s"%(self.name,self.n1,self.n2,self.length))
 
-class Valve():
+class Valve(Object):
 	'''
 		the valve class
 		this is a nother type of item in the line
 		has a name, valve type, an array of nodes and a status (optional)
 	'''
 	
-	def __init__(self,vName,vNodes,vStatus=""):
-		self.vName=vName
-		self.vNodes=vNodes	
+	def __init__(self,name,n1,n2,vStatus=""):
+		self.name=name
+		self.n1=n1
+		self.n2=n2
 		self.vStatus=vStatus
 	
-	def __repr__(self):
-		return ("I'm a valve.  my nodes are {}, my status is {}".format(self.vName,self.vNodes,self.vStatus))
+	#def __repr__(self):
+	#	return ("I'm valve {}.  my nodes are {}, my status is {}".format(self.name,[self.n1,self.n2],self.vStatus))
 		
 class Node():
 	'''
@@ -168,8 +222,8 @@ def create_parser():
 #input:  none
 #output: parse object
 	parser=argparse.ArgumentParser(description="Enter a filename to have it parsed into a piping model")
-	parser.add_argument("fileName",help="the name of a file (default active directory)")
-	parser.add_argument("-o","--outFile",help="the name of an output file (default active directory)")
+	parser.add_argument("fileName",help="the name of a file containing the mesh code(default active directory)")
+	parser.add_argument("-o","--outFile",help="the name of an output file to output the text to (default active directory)")
 	
 	return parser
 	
@@ -180,5 +234,6 @@ if __name__ == "__main__":
 	args=parser.parse_args()
 	
 	print ("Your file: "+(args.fileName))
-	mesh=Mesh(args.fileName)
+	mesh=Mesh(args.fileName,args.outFile)
+	mesh.f_out()
 	print(mesh)
