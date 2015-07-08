@@ -140,7 +140,8 @@ class Mesh():
 			prints to an output file
 		'''
 		print ("Outputing to file: {}".format(self.oFile))
-		if self.oFile!="":
+		if self.oFile!=None:
+			
 			f=open(self.oFile,'w')
 			f.truncate()
 			for object in self.objects:
